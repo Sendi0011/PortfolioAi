@@ -11,7 +11,7 @@ export interface AgentEvent {
   message:   string
   detail?:   string
   timestamp: number
-  type?:     'debate'  // Special activity types
+  type?:     'debate' | 'research_purchase'  // Special activity types
   debateData?: unknown // Store debate result for rendering
 }
 

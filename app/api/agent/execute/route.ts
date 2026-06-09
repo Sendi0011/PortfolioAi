@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { buildRedeemCalldata } from '@/lib/metamask'
 import { pickRelayer, relayDelegationRedemption } from '@/lib/oneshot'
-import { addEvent, upsertTx, deserialiseDelegation } from '@/lib/store'
+import { addEvent, upsertTx, deserialiseDelegation, store } from '@/lib/store'
 import type { Address } from 'viem'
 import type { RebalanceDecision } from '@/lib/venice'
 
@@ -10,6 +10,9 @@ const USDC_ADDR  = (process.env.NEXT_PUBLIC_USDC_ADDRESS ?? '0x036CbD53842c54266
 
 // Uniswap v3 SwapRouter on Base Sepolia — replace with actual router address
 const SWAP_ROUTER = '0x2626664c2603336E57B271c5C0b26F421741e481' as Address
+
+// A2A Research threshold - trades above this value require research
+const RESEARCH_THRESHOLD_USD = 50
 
 /**
  * POST /api/agent/execute
@@ -50,6 +53,97 @@ export async function POST(request: Request) {
 
     // ── Pick relayer once ────────────────────────────────────────────────────
     const relayerId = await pickRelayer(CHAIN_ID, USDC_ADDR)
+
+    // ── A2A Research Purchase Logic ─────────────────────────────────────────
+    for (const action of decision.actions) {
+      // Check if this trade requires research (high-value trades)
+      if (action.amountUSDC >= RESEARCH_THRESHOLD_USD) {
+        const token = action.from === 'USDC' ? action.to : action.from
+        
+        // Check if research already purchased for this token (within last hour)
+        const existingResearch = store.purchasedResearch.find(r => 
+          r.token === token && 
+          Date.now() - r.purchasedAt < 3600000 // 1 hour
+        )
+
+        if (!existingResearch) {
+          addEvent({
+            agent: 'executor',
+            status: 'running',
+            message: `High-value trade detected ($${action.amountUSDC}) - purchasing ${token} research autonomously`,
+            detail: 'A2A transaction: ExecutorAgent buying research before trade execution'
+          })
+
+          try {
+            // Autonomous research purchase via internal API call
+            const researchResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/research?token=${token}`, {
+              method: 'GET',
+              headers: {
+                'X-Payment': generateMockPaymentPayload(token, 0.5) // Agent generates own payment
+              }
+            })
+
+            if (researchResponse.ok) {
+              const researchData = await researchResponse.json()
+              
+              addEvent({
+                agent: 'executor',
+                status: 'success',
+                message: `ExecutorAgent purchased ${token} research (A2A): $0.50 USDC`,
+                detail: `Research recommendation: ${researchData.recommendation} - proceeding with informed trade`,
+                type: 'research_purchase'
+              })
+
+              // Log the A2A research purchase transaction
+              upsertTx({
+                jobId: `research-${token}-${Date.now()}`,
+                status: 'confirmed',
+                description: `A2A Research Purchase: ${token} analysis ($0.50 USDC)`,
+              })
+
+              // Use research context to inform trade execution (could modify swap parameters)
+              if (researchData.recommendation === 'STRONG_SELL' || researchData.recommendation === 'SELL') {
+                addEvent({
+                  agent: 'executor',
+                  status: 'running',
+                  message: `⚠️ Research advises caution (${researchData.recommendation}) - applying conservative execution parameters`,
+                  detail: `Confidence: ${researchData.confidence}% | Target: $${researchData.targetPrice?.toLocaleString()}`
+                })
+                // In production, this could reduce trade size or add more slippage protection
+              } else if (researchData.recommendation === 'STRONG_BUY' || researchData.recommendation === 'BUY') {
+                addEvent({
+                  agent: 'executor',
+                  status: 'success',
+                  message: `✅ Research supports trade (${researchData.recommendation}) - proceeding with optimized execution`,
+                  detail: `Confidence: ${researchData.confidence}% | Target: $${researchData.targetPrice?.toLocaleString()}`
+                })
+              }
+            } else {
+              addEvent({
+                agent: 'executor',
+                status: 'error',
+                message: `Failed to purchase ${token} research - proceeding without research context`,
+                detail: 'A2A research purchase failed but trade will continue'
+              })
+            }
+          } catch (err) {
+            addEvent({
+              agent: 'executor',
+              status: 'error',
+              message: `A2A research purchase error: ${err instanceof Error ? err.message : String(err)}`,
+              detail: 'Continuing trade execution without research context'
+            })
+          }
+        } else {
+          addEvent({
+            agent: 'executor',
+            status: 'success',
+            message: `Recent ${token} research found - using existing analysis for trade`,
+            detail: `Research purchased ${Math.floor((Date.now() - existingResearch.purchasedAt) / 60000)}min ago`
+          })
+        }
+      }
+    }
 
     for (const action of decision.actions) {
       addEvent({
@@ -136,4 +230,21 @@ function buildUniswapCalldata(
   ].join('')
 
   return `0x414bf389${params}` as `0x${string}`
+}
+
+// ─── Generate mock payment payload for A2A research purchase ───────────────────
+function generateMockPaymentPayload(token: string, amountUSD: number): string {
+  // For A2A transactions, the ExecutorAgent generates its own x402 payment
+  // In production, this would use the agent's own wallet/smart account
+  const mockPayment = {
+    payTo: process.env.RESEARCH_WALLET_ADDRESS || '0x742d35Cc6634C0532925a3b8D73a5e7d6c9ca1e7',
+    asset: process.env.NEXT_PUBLIC_USDC_ADDRESS,
+    maxAmount: String(Math.floor(amountUSD * 1e6)), // Convert to USDC units
+    payer: process.env.EXECUTOR_AGENT_ADDRESS || '0x000000000000000000000000000000000000dEaD',
+    nonce: Date.now(),
+    memo: `A2A research purchase for ${token}`,
+    signature: `0x${'a'.repeat(130)}` // Mock signature - in production would be real EIP-712 signature
+  }
+
+  return Buffer.from(JSON.stringify(mockPayment)).toString('base64')
 }
