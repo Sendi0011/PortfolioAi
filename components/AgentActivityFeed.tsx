@@ -3,6 +3,7 @@ import React from 'react'
 import { clsx } from 'clsx'
 import { DebateCard } from './DebateCard'
 import { ResearchPurchaseCard } from './ResearchPurchaseCard'
+import { TransferCard } from './TransferCard'
 import type { AgentEvent } from '@/lib/store'
 
 const AGENT_LABELS: Record<string, string> = {
@@ -53,7 +54,7 @@ export function AgentActivityFeed({ events, agentRunning }: Props) {
           </div>
         )}
         
-        {/* @ts-ignore - Type issue with debateData unknown type and research purchase events */}
+        {/* @ts-expect-error - debateData is typed as unknown but DebateCard expects proper debate structure */}
         {events.map((e) => (
           <div key={e.id}>
             {/* Regular event */}
@@ -113,6 +114,19 @@ export function AgentActivityFeed({ events, agentRunning }: Props) {
                   token={e.detail?.match(/([A-Z]{2,4}) analysis/)?.[1] || 'ETH'}
                   amount={0.50}
                   txHash={e.detail?.includes('research-') ? 'A2A-' + Date.now() : undefined}
+                />
+              </div>
+            )}
+
+            {/* Transfer card for natural language transfers */}
+            {e.type === 'transfer' && (
+              <div className="px-4 pb-3">
+                <TransferCard
+                  amount={parseFloat(e.detail?.match(/(\d+(?:\.\d+)?)/)?.[1] || '0')}
+                  token={e.detail?.match(/(\d+(?:\.\d+)?\s+(\w+))/)?.[2] || 'USDC'}
+                  recipient={e.detail?.match(/to\s+([^\s]+)/)?.[1] || 'Unknown'}
+                  status={e.status === 'success' ? 'confirmed' : e.status === 'error' ? 'failed' : 'pending'}
+                  txHash={e.detail?.includes('Job') ? e.detail.split(':')[1]?.trim() : undefined}
                 />
               </div>
             )}

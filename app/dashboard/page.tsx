@@ -9,6 +9,7 @@ import { TxStatusBadge }        from '@/components/TxStatusBadge'
 import { StrategyMarketplace }  from '@/components/StrategyMarketplace'
 import { ResearchPaywall }      from '@/components/ResearchPaywall'
 import { AudioManager }         from '@/components/AudioManager'
+import { AgentChat }            from '@/components/AgentChat'
 import {
   requestRebalancePermission,
   createRootDelegation,
@@ -295,7 +296,7 @@ export default function DashboardPage() {
           )}
 
           {/* Transaction history */}
-          <div className="flex-1 p-6">
+          <div className="p-6">
             <p className="text-xs font-mono text-subtle uppercase tracking-wider mb-4">
               Transaction History — 1Shot Relayer
             </p>
@@ -318,6 +319,14 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+
+          {/* Natural Language Transfer Chat */}
+          <div className="p-6 border-t border-border">
+            <AgentChat
+              smartAccountAddress={state?.delegation.smartAccount}
+              hasPermission={hasPermission}
+            />
+          </div>
         </div>
 
         {/* ── Right column: Agent feed ───────────────────────────────────── */}
@@ -328,6 +337,15 @@ export default function DashboardPage() {
             <StrategyMarketplace
               activeStrategy={state?.activeStrategy ?? 'balanced'}
               onStrategyChange={handleStrategyChange}
+            />
+          </div>
+
+          {/* Research Paywall - One card per major token */}
+          <div className="p-4 space-y-3">
+            <ResearchPaywall
+              token="ETH"
+              currentPrice={portfolio?.prices?.ETH ?? 2400}
+              smartAccountAddress={state?.delegation.smartAccount}
             />
           </div>
 

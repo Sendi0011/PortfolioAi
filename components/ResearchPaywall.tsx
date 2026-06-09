@@ -59,7 +59,7 @@ export function ResearchPaywall({ token, currentPrice, smartAccountAddress }: Pr
     }
 
     setIsLoading(true)
-    setError('')
+    setError('') // Clear any previous errors
 
     try {
       const result = await initiateResearchPayment(
@@ -72,12 +72,24 @@ export function ResearchPaywall({ token, currentPrice, smartAccountAddress }: Pr
         setReport(result.report as ResearchReport)
         setIsUnlocked(true)
         setTxHash(result.txHash || '')
+        setError('') // Clear any errors on success
       } else {
         setError(result.error || 'Payment failed')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Payment failed')
+      console.error('Research payment error:', err)
+      const errorMsg = err instanceof Error ? err.message : 'Payment failed'
+      
+      // Handle common MetaMask errors
+      if (errorMsg.includes('User rejected') || errorMsg.includes('user rejected')) {
+        setError('Payment cancelled by user')
+      } else if (errorMsg.includes('insufficient funds') || errorMsg.includes('Insufficient funds')) {
+        setError('Insufficient funds for payment')
+      } else {
+        setError(errorMsg)
+      }
     } finally {
+      // Always reset loading state
       setIsLoading(false)
     }
   }
@@ -231,18 +243,29 @@ export function ResearchPaywall({ token, currentPrice, smartAccountAddress }: Pr
             </div>
           )}
 
-          <button
-            onClick={handleUnlockResearch}
-            disabled={isLoading || !smartAccountAddress}
-            className={clsx(
-              'px-4 py-2 rounded-lg text-xs font-medium transition-all',
-              'bg-amber text-bg hover:bg-amber/90 active:scale-95',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
-              isLoading && 'animate-pulse'
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={handleUnlockResearch}
+              disabled={isLoading || !smartAccountAddress}
+              className={clsx(
+                'px-4 py-2 rounded-lg text-xs font-medium transition-all',
+                'bg-amber text-bg hover:bg-amber/90 active:scale-95',
+                'disabled:opacity-50 disabled:cursor-not-allowed',
+                isLoading && 'animate-pulse'
+              )}
+            >
+              {isLoading ? '⟳ Processing Payment…' : error && !isLoading ? 'Try Again' : 'Unlock for 0.50 USDC'}
+            </button>
+
+            {error && !isLoading && (
+              <button
+                onClick={() => setError('')}
+                className="text-xs text-subtle hover:text-text transition-colors"
+              >
+                Clear error
+              </button>
             )}
-          >
-            {isLoading ? '⟳ Processing Payment…' : 'Unlock for 0.50 USDC'}
-          </button>
+          </div>
 
           <p className="text-xs text-muted">
             Secured by x402 payment protocol

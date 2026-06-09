@@ -11,7 +11,7 @@ export interface AgentEvent {
   message:   string
   detail?:   string
   timestamp: number
-  type?:     'debate' | 'research_purchase'  // Special activity types
+  type?:     'debate' | 'research_purchase' | 'transfer'  // Special activity types
   debateData?: unknown // Store debate result for rendering
   audioText?: string // Text to be narrated by Venice AI
 }
@@ -128,12 +128,12 @@ export function addAudioEvent(text: string, voice?: string) {
 
 function getVoiceForAgent(agent: string): string {
   const voiceMap: Record<string, string> = {
-    oracle: 'alloy',     // Professional analyst voice
-    strategy: 'echo',    // Decisive strategy voice  
-    executor: 'fable',   // Action-oriented voice
-    webhook: 'onyx'      // System notification voice
+    oracle: 'af_sky',      // Professional female analyst voice (Kokoro)
+    strategy: 'am_adam',   // Decisive male strategy voice (Kokoro)  
+    executor: 'af_bella',  // Action-oriented female voice (Kokoro)
+    webhook: 'am_onyx'     // System notification voice (Kokoro)
   }
-  return voiceMap[agent] || 'alloy'
+  return voiceMap[agent] || 'af_sky'
 }
 
 export function upsertTx(record: Omit<TxRecord, 'timestamp'> & { timestamp?: number }) {
