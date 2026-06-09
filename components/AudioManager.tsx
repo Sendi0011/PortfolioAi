@@ -19,21 +19,26 @@ export function AudioManager({ audioEvents }: Props) {
   const audioQueueRef = useRef<string[]>([])
   const isPlayingRef = useRef(false)
 
-  // Process new audio events
+  // Process new audio events  
   useEffect(() => {
-    if (isMuted) return
+    if (isMuted || audioEvents.length === 0) return
 
-    // Find new events that haven't been played
-    const newEvents = audioEvents.filter(event => 
-      !playedEventsRef.current.has(event.id)
-    )
-
-    newEvents.forEach(event => {
-      playedEventsRef.current.add(event.id)
-      if (!isMuted) {
-        queueAudio(event.text, event.voice)
+    // Get the most recent audio event
+    const latestEvent = audioEvents[0] // audioEvents are sorted with newest first
+    
+    // Only play if this is a truly new event (within last 10 seconds)
+    const isRecentEvent = (Date.now() - latestEvent.timestamp) < 10000
+    
+    if (isRecentEvent && !playedEventsRef.current.has(latestEvent.id)) {
+      playedEventsRef.current.add(latestEvent.id)
+      queueAudio(latestEvent.text, latestEvent.voice)
+      
+      // Clean up old played events (keep last 50)
+      if (playedEventsRef.current.size > 50) {
+        const oldIds = Array.from(playedEventsRef.current).slice(0, -25)
+        oldIds.forEach(id => playedEventsRef.current.delete(id))
       }
-    })
+    }
   }, [audioEvents, isMuted])
 
   // Queue audio for sequential playback
