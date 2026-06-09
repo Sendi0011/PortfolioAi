@@ -186,6 +186,7 @@ export async function POST(request: Request) {
         status:  'success',
         message: `1Shot job submitted: ${relay.jobId}`,
         detail:  `${action.from} → ${action.to} | ${action.amountUSDC} USDC`,
+        audioText: `Trade executed: ${action.amountUSDC} dollars ${action.from} to ${action.to}` // Audio narration
       })
     }
 

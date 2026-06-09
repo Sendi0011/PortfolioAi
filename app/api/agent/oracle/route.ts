@@ -83,6 +83,7 @@ export async function GET(request: Request) {
       status:  'success',
       message: `Portfolio snapped: $${totalValueUSDC.toFixed(2)} USDC total`,
       detail:  marketSummary,
+      audioText: `Oracle analysis complete. ${marketSummary}` // Audio narration
     })
 
     return NextResponse.json({

@@ -17,6 +17,7 @@ export async function GET() {
     },
     agentRunning: store.agentRunning,
     activeStrategy: store.activeStrategy,
+    audioEvents: store.audioEvents.slice(0, 20), // Latest 20 audio events
   })
 }
 

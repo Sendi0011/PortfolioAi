@@ -13,6 +13,7 @@ export interface AgentEvent {
   timestamp: number
   type?:     'debate' | 'research_purchase'  // Special activity types
   debateData?: unknown // Store debate result for rendering
+  audioText?: string // Text to be narrated by Venice AI
 }
 
 export interface TxRecord {
@@ -70,6 +71,12 @@ declare global {
     agentRunning: boolean
     activeStrategy: 'conservative' | 'aggressive' | 'balanced'
     purchasedResearch: ResearchReport[]
+    audioEvents: Array<{
+      id: string
+      text: string
+      timestamp: number
+      voice?: string
+    }>
   } | undefined
 }
 
@@ -82,6 +89,7 @@ if (!globalThis.__portfolioStore) {
     agentRunning: false,
     activeStrategy: 'balanced', // Default to Nova - Balanced
     purchasedResearch: [],
+    audioEvents: [],
   }
 }
 
@@ -97,7 +105,35 @@ export function addEvent(event: Omit<AgentEvent, 'id' | 'timestamp'>) {
   store.events.unshift(e)
   // Keep last 200 events
   if (store.events.length > 200) store.events.length = 200
+
+  // Add audio event if audioText is provided
+  if (e.audioText) {
+    addAudioEvent(e.audioText, getVoiceForAgent(e.agent))
+  }
+
   return e
+}
+
+export function addAudioEvent(text: string, voice?: string) {
+  const audioEvent = {
+    id: `audio-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    text,
+    timestamp: Date.now(),
+    voice
+  }
+  store.audioEvents.unshift(audioEvent)
+  // Keep last 50 audio events
+  if (store.audioEvents.length > 50) store.audioEvents.length = 50
+}
+
+function getVoiceForAgent(agent: string): string {
+  const voiceMap: Record<string, string> = {
+    oracle: 'alloy',     // Professional analyst voice
+    strategy: 'echo',    // Decisive strategy voice  
+    executor: 'fable',   // Action-oriented voice
+    webhook: 'onyx'      // System notification voice
+  }
+  return voiceMap[agent] || 'alloy'
 }
 
 export function upsertTx(record: Omit<TxRecord, 'timestamp'> & { timestamp?: number }) {

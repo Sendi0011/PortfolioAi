@@ -110,7 +110,8 @@ export async function POST(request: Request) {
       agent: 'strategy',
       status: 'success', 
       message: `Debate complete — Judge verdict: ${judgeResult.verdict}`,
-      detail: `Bull ${judgeResult.bullScore} vs Bear ${judgeResult.bearScore}. ${judgeResult.reasoning}`
+      detail: `Bull ${judgeResult.bullScore} vs Bear ${judgeResult.bearScore}. ${judgeResult.reasoning}`,
+      audioText: `Judge verdict reached: ${judgeResult.verdict}. ${judgeResult.reasoning}` // Audio narration
     })
 
     return NextResponse.json(debateResult)
