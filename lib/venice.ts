@@ -7,6 +7,7 @@ const venice = new OpenAI({
 
 const TEXT_MODEL = process.env.VENICE_TEXT_MODEL ?? 'zai-org-glm-5.1'
 const IMAGE_MODEL = process.env.VENICE_IMAGE_MODEL ?? 'nano-banana-pro'
+const AUDIO_MODEL = process.env.VENICE_AUDIO_MODEL ?? 'tts-kokoro'
 
 // ─── Text completion ──────────────────────────────────────────────────────────
 export async function veniceChat(
@@ -90,6 +91,38 @@ export async function veniceGenerateChart(
   if (img.url) return img.url
   if (img.b64_json) return `data:image/png;base64,${img.b64_json}`
   throw new Error('Venice image generation returned invalid format')
+}
+
+// ─── Audio generation (agent voice narration) ─────────────────────────────────
+export async function veniceGenerateAudio(
+  text: string,
+  voice?: string
+): Promise<string> {
+  try {
+    console.log('🔊 Venice Audio: Starting TTS request')
+    console.log('Text length:', text.length)
+    console.log('Voice:', voice || 'default')
+
+    const response = await venice.audio.speech.create({
+      model: AUDIO_MODEL,
+      input: text,
+      voice: voice || 'af_sky', // Professional female voice from Kokoro
+      response_format: 'mp3',
+      speed: 1.0,
+    })
+
+    // Convert response to base64 data URL for immediate playback
+    const audioBuffer = await response.arrayBuffer()
+    const base64Audio = Buffer.from(audioBuffer).toString('base64')
+    const dataUrl = `data:audio/mp3;base64,${base64Audio}`
+    
+    console.log('✅ Venice Audio: Response received')
+    return dataUrl
+  } catch (error) {
+    console.error('❌ Venice Audio Error:', error)
+    // Return empty data URL if audio generation fails (non-blocking)
+    return ''
+  }
 }
 
 // ─── Summarise market conditions (OracleAgent helper) ─────────────────────────

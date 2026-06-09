@@ -8,6 +8,7 @@ import { PermissionGrantModal } from '@/components/PermissionGrantModal'
 import { TxStatusBadge }        from '@/components/TxStatusBadge'
 import { StrategyMarketplace }  from '@/components/StrategyMarketplace'
 import { ResearchPaywall }      from '@/components/ResearchPaywall'
+import { AudioManager }         from '@/components/AudioManager'
 import {
   requestRebalancePermission,
   createRootDelegation,
@@ -31,6 +32,7 @@ interface StateSnapshot {
   delegation:   { hasPermission: boolean; expiresAt?: number; smartAccount?: string }
   agentRunning: boolean
   activeStrategy: 'conservative' | 'aggressive' | 'balanced'
+  audioEvents:  Array<{ id: string; text: string; timestamp: number; voice?: string }>
 }
 
 const POLL_MS = 4000   // dashboard polling interval
@@ -188,6 +190,8 @@ export default function DashboardPage() {
           >
             🔌
           </button>
+
+          <AudioManager audioEvents={state?.audioEvents ?? []} />
         </div>
       </nav>
 
@@ -275,17 +279,7 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {/* Research Paywall Sidebar */}
-            <div className="w-full lg:w-80 space-y-4">
-              {Object.entries(portfolio?.allocations ?? { ETH: 60 }).map(([token, allocation]) => (
-                <ResearchPaywall
-                  key={token}
-                  token={token}
-                  currentPrice={portfolio?.prices[token] ?? 2400}
-                  smartAccountAddress={state?.delegation.smartAccount}
-                />
-              ))}
-            </div>
+
           </div>
 
           {/* Prices row */}
