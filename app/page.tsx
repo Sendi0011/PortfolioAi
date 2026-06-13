@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { clsx } from 'clsx'
 import { getOrCreateSmartAccount } from '@/lib/metamask'
 
@@ -104,16 +105,26 @@ export default function LandingPage() {
     <main className="min-h-screen grid-bg flex flex-col">
       {/* Nav */}
       <nav className="flex items-center justify-between px-8 py-4 border-b border-border/50">
-        <span className="font-display font-bold text-lg tracking-tight text-amber text-amber-glow">
-          PortfolioAI
-        </span>
+        <Image 
+          src="/portfolioai_logo.PNG" 
+          alt="PortfolioAI" 
+          width={120}
+          height={32}
+          className="h-8 w-auto"
+        />
         <span className="text-xs font-mono text-subtle">Base Sepolia · MetaMask Smart Accounts</span>
       </nav>
 
       {/* Hero */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-20 text-center">
-        <div className="mb-6 w-16 h-16 rounded-2xl bg-amber/10 border border-amber/20 flex items-center justify-center text-3xl shadow-amber-glow">
-          📊
+        <div className="mb-6 w-16 h-16 rounded-2xl bg-amber/10 border border-amber/20 flex items-center justify-center shadow-amber-glow overflow-hidden">
+          <Image 
+            src="/portfolioai_icon.PNG" 
+            alt="PortfolioAI Icon" 
+            width={48}
+            height={48}
+            className="w-12 h-12 object-contain"
+          />
         </div>
 
         <h1 className="font-display text-4xl sm:text-5xl font-bold text-text mb-4 leading-tight max-w-2xl">
@@ -190,18 +201,6 @@ export default function LandingPage() {
             <h3 className="font-display font-semibold text-text text-sm">{f.title}</h3>
             <p className="text-subtle text-xs leading-relaxed">{f.desc}</p>
           </div>
-        ))}
-      </div>
-
-      {/* Prize targets footer */}
-      <div className="border-t border-border px-8 py-3 flex flex-wrap gap-3 justify-center">
-        {[
-          '🏆 Best Agent $3k',
-          '🔗 Best A2A Coordination $3k',
-          '🎨 Best Venice AI $3k',
-          '⚡ Best 1Shot $1k',
-        ].map((p) => (
-          <span key={p} className="text-xs font-mono text-muted">{p}</span>
         ))}
       </div>
     </main>

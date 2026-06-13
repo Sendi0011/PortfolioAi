@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { clsx } from 'clsx'
 import { PortfolioPieChart }    from '@/components/PortfolioPieChart'
 import { AgentActivityFeed }    from '@/components/AgentActivityFeed'
@@ -150,7 +151,13 @@ export default function DashboardPage() {
     <main className="min-h-screen flex flex-col bg-bg">
       {/* ── Nav ─────────────────────────────────────────────────────────── */}
       <nav className="flex items-center justify-between px-6 py-3 border-b border-border bg-surface/80 backdrop-blur sticky top-0 z-30">
-        <span className="font-display font-bold text-amber">PortfolioAI</span>
+        <Image 
+          src="/portfolioai_logo.PNG" 
+          alt="PortfolioAI" 
+          width={105}
+          height={28}
+          className="h-7 w-auto"
+        />
 
         <div className="flex items-center gap-3">
           {state?.agentRunning && (

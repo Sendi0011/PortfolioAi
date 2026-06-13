@@ -4,7 +4,7 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'PortfolioAI — Autonomous DeFi Agent',
   description: 'Set once. Rebalance forever. Powered by MetaMask Smart Accounts, Venice AI, and 1Shot.',
-  icons: { icon: '/favicon.svg' },
+  icons: { icon: '/portfolioai_icon.PNG' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
