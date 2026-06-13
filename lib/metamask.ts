@@ -1,11 +1,3 @@
-'use client'
-/**
- * MetaMask Smart Accounts Kit helpers
- * Wraps: createMetaMaskSmartAccount, createDelegation, createRedelegation,
- *        redeemDelegation, requestPermissions (ERC-7715)
- */
-
-'use client'
 /**
  * MetaMask Smart Accounts Kit helpers - Demo Implementation
  * 
@@ -179,4 +171,3 @@ export async function buildRedeemCalldata(params: RedeemParams): Promise<`0x${st
   const mockCalldata = `0x12345678${callsData.slice(0, 200)}` // Redemption selector + truncated data
   return mockCalldata as `0x${string}`
 }
-
