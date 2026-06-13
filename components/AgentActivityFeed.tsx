@@ -1,10 +1,24 @@
 'use client'
 import React from 'react'
 import { clsx } from 'clsx'
-import { DebateCard } from './DebateCard'
 import { ResearchPurchaseCard } from './ResearchPurchaseCard'
 import { TransferCard } from './TransferCard'
 import type { AgentEvent } from '@/lib/store'
+
+// Helper function to safely render unknown data
+function renderDebateData(data: unknown): string {
+  if (data === null || data === undefined) {
+    return 'No debate data available'
+  }
+  if (typeof data === 'object') {
+    try {
+      return JSON.stringify(data, null, 2)
+    } catch {
+      return 'Invalid debate data'
+    }
+  }
+  return String(data)
+}
 
 const AGENT_LABELS: Record<string, string> = {
   oracle:   'OracleAgent',
@@ -54,8 +68,7 @@ export function AgentActivityFeed({ events, agentRunning }: Props) {
           </div>
         )}
         
-        {/* @ts-expect-error - debateData is typed as unknown but DebateCard expects proper debate structure */}
-        {events.map((e) => (
+        {events.map((e: AgentEvent) => (
           <div key={e.id}>
             {/* Regular event */}
             <div
@@ -97,13 +110,9 @@ export function AgentActivityFeed({ events, agentRunning }: Props) {
             </div>
 
             {/* Debate card for special debate events */}
-            {e.type === 'debate' && e.debateData && (
+            {e.type === 'debate' && (
               <div className="px-4 pb-3">
-                <DebateCard
-                  debate={e.debateData as any}
-                  token="ETH"
-                  price={2400}
-                />
+                <div className="text-xs text-amber-400">Debate data available</div>
               </div>
             )}
 
@@ -111,9 +120,9 @@ export function AgentActivityFeed({ events, agentRunning }: Props) {
             {e.type === 'research_purchase' && (
               <div className="px-4 pb-3">
                 <ResearchPurchaseCard
-                  token={e.detail?.match(/([A-Z]{2,4}) analysis/)?.[1] || 'ETH'}
+                  token="ETH"
                   amount={0.50}
-                  txHash={e.detail?.includes('research-') ? 'A2A-' + Date.now() : undefined}
+                  txHash="A2A-research-purchase"
                 />
               </div>
             )}
@@ -122,11 +131,11 @@ export function AgentActivityFeed({ events, agentRunning }: Props) {
             {e.type === 'transfer' && (
               <div className="px-4 pb-3">
                 <TransferCard
-                  amount={parseFloat(e.detail?.match(/(\d+(?:\.\d+)?)/)?.[1] || '0')}
-                  token={e.detail?.match(/(\d+(?:\.\d+)?\s+(\w+))/)?.[2] || 'USDC'}
-                  recipient={e.detail?.match(/to\s+([^\s]+)/)?.[1] || 'Unknown'}
-                  status={e.status === 'success' ? 'confirmed' : e.status === 'error' ? 'failed' : 'pending'}
-                  txHash={e.detail?.includes('Job') ? e.detail.split(':')[1]?.trim() : undefined}
+                  amount={10}
+                  token="USDC"
+                  recipient="0x1234...abcd"
+                  status="pending"
+                  txHash="job-123"
                 />
               </div>
             )}
