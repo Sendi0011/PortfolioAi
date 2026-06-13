@@ -33,35 +33,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { jobId, status, txHash, blockNumber, error: txError, metadata } = payload
+  const { jobId, txHash, status, blockNumber, error: txError } = payload
 
   // ── Update transaction record ─────────────────────────────────────────────
   upsertTx({
-    jobId,
+    jobId: jobId,
+    txHash: txHash, // May be undefined for pending status
     status,
-    txHash,
     blockNumber,
-    description: metadata?.action
-      ? `Swap ${metadata.amountUSDC ?? ''} USDC: ${metadata.action}`
-      : `Job ${jobId}`,
+    description: `Job ${jobId.slice(0, 10)}...`,
   })
 
   // ── Emit agent event ──────────────────────────────────────────────────────
   const statusMessages: Record<string, string> = {
-    pending:   `Tx queued by relayer`,
-    submitted: `Tx broadcast to chain: ${txHash?.slice(0, 10)}…`,
+    pending:   `Job queued by 1Shot relayer`,
+    submitted: txHash ? `Tx broadcast to chain: ${txHash.slice(0, 10)}...` : 'Broadcasting...',
     confirmed: `Tx confirmed in block ${blockNumber ?? ''}`,
-    failed:    `Tx failed: ${txError ?? 'unknown error'}`,
+    failed:    `Job failed: ${txError ?? 'unknown error'}`,
   }
 
   addEvent({
     agent:   'webhook',
     status:  status === 'confirmed' ? 'success' : status === 'failed' ? 'error' : 'running',
     message: statusMessages[status] ?? `Status: ${status}`,
-    detail:  txHash,
+    detail:  txHash ?? jobId,
   })
 
-  console.log(`[1Shot webhook] jobId=${jobId} status=${status} txHash=${txHash ?? '-'}`)
+  console.log(`[1Shot webhook] jobId=${jobId} txHash=${txHash ?? 'pending'} status=${status} block=${blockNumber ?? '-'}`)
 
   return NextResponse.json({ received: true })
 }

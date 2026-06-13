@@ -15,6 +15,11 @@ export async function GET() {
       expiresAt:     store.delegation.expiresAt,
       smartAccount:  store.delegation.smartAccountAddress,
     },
+    wallet: {
+      address:     store.wallet.address,
+      isConnected: store.wallet.isConnected,
+      chainId:     store.wallet.chainId,
+    },
     agentRunning: store.agentRunning,
     activeStrategy: store.activeStrategy,
     audioEvents: store.audioEvents.slice(0, 20), // Latest 20 audio events
@@ -22,8 +27,8 @@ export async function GET() {
 }
 
 /**
- * POST /api/state/delegation
- * Saves delegation state from the client after wallet interaction.
+ * POST /api/state
+ * Saves delegation state and wallet state from the client after wallet interaction.
  * Also handles activeStrategy updates.
  */
 export async function POST(request: Request) {
@@ -34,8 +39,15 @@ export async function POST(request: Request) {
     store.activeStrategy = body.activeStrategy
   }
   
-  // Handle delegation updates (exclude activeStrategy to avoid overwriting store.delegation)
-  const { activeStrategy, ...delegationData } = body
+  // Handle wallet updates
+  if (body.smartAccountAddress !== undefined) {
+    store.wallet.address = body.smartAccountAddress
+    store.wallet.isConnected = !!body.smartAccountAddress
+    store.delegation.smartAccountAddress = body.smartAccountAddress
+  }
+  
+  // Handle delegation updates (exclude activeStrategy and smartAccountAddress to avoid conflicts)
+  const { activeStrategy, smartAccountAddress, ...delegationData } = body
   Object.assign(store.delegation, delegationData)
   
   return NextResponse.json({ ok: true })

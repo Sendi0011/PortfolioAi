@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { addEvent, upsertTx, store, deserialiseDelegation } from '@/lib/store'
 import { buildRedeemCalldata } from '@/lib/metamask'
-import { relayDelegationRedemption } from '@/lib/oneshot'
+import { submitTransaction, getRelayerHealth } from '@/lib/oneshot'
 import { encodeFunctionData } from 'viem'
 import type { Address } from 'viem'
 
+const CHAIN_ID = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? 84532)
 const USDC_ADDR = (process.env.NEXT_PUBLIC_USDC_ADDRESS ?? '0x036CbD53842c5426634e7929541eC2318f3dCF7e') as Address
 
 /**
@@ -65,26 +66,63 @@ export async function POST(request: Request) {
       calls: [{ to: USDC_ADDR, data: transferCalldata, value: 0n }],
     })
 
-    // Submit via 1Shot relayer
-    const relayerId = process.env.ONESHOT_RELAYER_ID ?? 'demo-relayer'
+    // Check 1Shot relayer health
+    addEvent({
+      agent: 'executor',
+      status: 'running',
+      message: 'Checking 1Shot relayer for transfer...',
+    })
+    
+    try {
+      const health = await getRelayerHealth()
+      addEvent({
+        agent: 'executor',
+        status: 'running',
+        message: `1Shot relayer ready for transfer: ${health.message}`,
+      })
+    } catch (error) {
+      addEvent({
+        agent: 'executor',
+        status: 'error',
+        message: '1Shot relayer unavailable for transfer',
+        detail: `Error: ${error instanceof Error ? error.message : String(error)}`,
+      })
+      return NextResponse.json({ 
+        error: '1Shot relayer unavailable for transfer', 
+        detail: error instanceof Error ? error.message : String(error)
+      }, { status: 503 })
+    }
+    
     const webhookUrl = `${process.env.WEBHOOK_BASE_URL ?? 'http://localhost:3000'}/api/webhook/1shot`
 
-    const relay = await relayDelegationRedemption(relayerId, {
-      calls: [{ to: smartAccountAddress as Address, data: redeemCalldata, value: '0x0' }],
-      delegation: executorDelegation,
+    const relay = await submitTransaction({
+      to: smartAccountAddress as Address,
+      data: redeemCalldata,
+      chainId: CHAIN_ID,
       gasToken: USDC_ADDR,
       webhookUrl,
-      webhookMetadata: {
-        action: `transfer-${amount}-${token}`,
-        recipient,
-        amount: String(amount),
-      },
     })
+
+    if (!relay.success || !relay.jobId) {
+      addEvent({
+        agent: 'executor',
+        status: 'error',
+        message: `Transfer failed: ${amount} ${token}`,
+        detail: relay.error || 'Unknown relay error',
+      })
+      return NextResponse.json({ 
+        error: 'Transfer failed', 
+        detail: relay.error || 'Unknown relay error' 
+      }, { status: 500 })
+    }
+
+    const jobId = relay.jobId!
 
     // Record transaction
     upsertTx({
-      jobId: relay.jobId,
-      status: relay.status,
+      jobId: jobId,
+      txHash: relay.txHash, // May be undefined initially
+      status: 'pending',
       description: `Transfer ${amount} ${token} to ${recipient.slice(0, 6)}...${recipient.slice(-4)}`,
     })
 
@@ -93,17 +131,18 @@ export async function POST(request: Request) {
       agent: 'executor',
       status: 'success',
       message: `Natural language transfer: ${amount} ${token}`,
-      detail: `Sent to ${recipient.slice(0, 6)}...${recipient.slice(-4)} via 1Shot`,
+      detail: `Sent to ${recipient.slice(0, 6)}...${recipient.slice(-4)} - Job: ${jobId.slice(0, 10)}...`,
       type: 'transfer',
       audioText: `Transfer executed: ${amount} ${token} sent to recipient`
     })
 
     return NextResponse.json({ 
-      jobId: relay.jobId,
+      jobId: jobId,
+      txHash: relay.txHash,
       amount,
       token,
       recipient,
-      status: relay.status
+      status: 'pending'
     })
 
   } catch (err: unknown) {

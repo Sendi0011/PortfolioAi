@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { buildRedeemCalldata } from '@/lib/metamask'
-import { pickRelayer, relayDelegationRedemption } from '@/lib/oneshot'
+import { submitTransaction, getRelayerHealth } from '@/lib/oneshot'
 import { addEvent, upsertTx, deserialiseDelegation, store } from '@/lib/store'
 import type { Address } from 'viem'
 import type { RebalanceDecision } from '@/lib/venice'
@@ -49,10 +49,34 @@ export async function POST(request: Request) {
       ? `${process.env.WEBHOOK_BASE_URL}/api/webhook/1shot`
       : undefined
 
-    const jobIds: string[] = []
+    const txHashes: string[] = []
 
-    // ── Pick relayer once ────────────────────────────────────────────────────
-    const relayerId = await pickRelayer(CHAIN_ID, USDC_ADDR)
+    // ── Check 1Shot Relayer Health ──────────────────────────────────────────────
+    addEvent({
+      agent: 'executor',
+      status: 'running',
+      message: 'Connecting to 1Shot relayer...',
+    })
+    
+    try {
+      const health = await getRelayerHealth()
+      addEvent({
+        agent: 'executor',
+        status: 'running',
+        message: `1Shot relayer ready: ${health.message}`,
+      })
+    } catch (error) {
+      addEvent({
+        agent: 'executor',
+        status: 'error',
+        message: '1Shot relayer health check failed',
+        detail: `Error: ${error instanceof Error ? error.message : String(error)}`,
+      })
+      return NextResponse.json({ 
+        error: '1Shot relayer unavailable', 
+        detail: error instanceof Error ? error.message : String(error)
+      }, { status: 503 })
+    }
 
     // ── A2A Research Purchase Logic ─────────────────────────────────────────
     for (const action of decision.actions) {
@@ -161,36 +185,45 @@ export async function POST(request: Request) {
         calls: [{ to: SWAP_ROUTER, data: swapCalldata, value: 0n }],
       })
 
-      // Submit via 1Shot
-      const relay = await relayDelegationRedemption(relayerId, {
-        calls: [{ to: SWAP_ROUTER, data: redeemCalldata, value: '0x0' }],
-        delegation: executorDelegation,
-        gasToken:   USDC_ADDR,
+      // Submit via 1Shot API
+      const relay = await submitTransaction({
+        to: SWAP_ROUTER,
+        data: redeemCalldata,
+        chainId: CHAIN_ID,
+        gasToken: USDC_ADDR,
         webhookUrl,
-        webhookMetadata: {
-          action: `${action.from}->${action.to}`,
-          amountUSDC: String(action.amountUSDC),
-        },
       })
 
-      jobIds.push(relay.jobId)
+      if (!relay.success || !relay.jobId) {
+        addEvent({
+          agent: 'executor',
+          status: 'error',
+          message: `Swap failed: ${action.from} → ${action.to}`,
+          detail: relay.error || 'Unknown relay error',
+        })
+        continue
+      }
+
+      const jobId = relay.jobId!
+      txHashes.push(jobId) // Use jobId for tracking
 
       upsertTx({
-        jobId:       relay.jobId,
-        status:      relay.status,
+        jobId:       jobId,
+        txHash:      relay.txHash, // May be undefined initially
+        status:      'pending',
         description: `Swap ${action.amountUSDC} USDC: ${action.from} → ${action.to}`,
       })
 
       addEvent({
         agent:   'executor',
         status:  'success',
-        message: `1Shot job submitted: ${relay.jobId}`,
+        message: `Transaction submitted: Job ${jobId.slice(0, 10)}...`,
         detail:  `${action.from} → ${action.to} | ${action.amountUSDC} USDC`,
         audioText: `Trade executed: ${action.amountUSDC} dollars ${action.from} to ${action.to}` // Audio narration
       })
     }
 
-    return NextResponse.json({ jobIds, txCount: decision.actions.length })
+    return NextResponse.json({ txHashes, txCount: decision.actions.length })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     addEvent({ agent: 'executor', status: 'error', message: 'ExecutorAgent failed', detail: msg })

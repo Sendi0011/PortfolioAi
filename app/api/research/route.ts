@@ -3,6 +3,11 @@ import { veniceChat } from '@/lib/venice'
 import { store, addEvent } from '@/lib/store'
 import type { ResearchReport } from '@/lib/store'
 
+const RESEARCH_PRICE_USDC_UNITS = '500000' // 0.50 USDC, 6 decimals
+const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS || '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
+const RESEARCH_WALLET = process.env.RESEARCH_WALLET_ADDRESS || '0x742d35Cc6634C0532925a3b8D73a5e7d6c9ca1e7'
+const X402_NETWORK = process.env.NEXT_PUBLIC_CHAIN_ID === '8453' ? 'base' : 'base-sepolia'
+
 /**
  * GET /api/research?token=ETH
  * 
@@ -16,6 +21,15 @@ export async function GET(request: Request) {
 
   // Step 1: Check for payment
   if (!paymentPayload) {
+    const challenge = {
+      scheme: 'eip712',
+      network: X402_NETWORK,
+      maxAmount: RESEARCH_PRICE_USDC_UNITS,
+      asset: USDC_ADDRESS,
+      payTo: RESEARCH_WALLET,
+      memo: `Premium ${token} market research report`,
+    }
+
     addEvent({
       agent: 'oracle',
       status: 'error',
@@ -24,19 +38,15 @@ export async function GET(request: Request) {
     })
 
     return NextResponse.json(
-      {
-        error: 'Payment required for premium research',
-        token: token,
-        description: `Comprehensive ${token} market analysis and recommendations`
-      },
+      challenge,
       {
         status: 402,
         headers: {
           'x-payment-required': 'true',
           'x-payment-amount': '0.50',
           'x-payment-currency': 'USDC',
-          'x-payment-description': `Premium ${token} market research report`,
-          'x-payment-recipient': process.env.RESEARCH_WALLET_ADDRESS || '0x742d35Cc6634C0532925a3b8D73a5e7d6c9ca1e7'
+          'x-payment-description': challenge.memo,
+          'x-payment-recipient': RESEARCH_WALLET
         }
       }
     )
@@ -45,6 +55,27 @@ export async function GET(request: Request) {
   // Step 2: Verify payment (simplified for demo)
   try {
     const payment = JSON.parse(Buffer.from(paymentPayload, 'base64').toString())
+    const requiredFields = ['payTo', 'asset', 'maxAmount', 'payer', 'signature']
+    const missingField = requiredFields.find((field) => !payment[field])
+
+    if (missingField) {
+      return NextResponse.json(
+        { error: `Invalid payment payload: missing ${missingField}` },
+        { status: 400 }
+      )
+    }
+
+    if (
+      payment.payTo.toLowerCase() !== RESEARCH_WALLET.toLowerCase() ||
+      payment.asset.toLowerCase() !== USDC_ADDRESS.toLowerCase() ||
+      payment.maxAmount !== RESEARCH_PRICE_USDC_UNITS
+    ) {
+      return NextResponse.json(
+        { error: 'Invalid payment challenge response' },
+        { status: 402 }
+      )
+    }
+
     addEvent({
       agent: 'oracle',
       status: 'running',

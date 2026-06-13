@@ -45,6 +45,13 @@ export interface DelegationState {
   smartAccountAddress?: string
 }
 
+export interface WalletState {
+  address?:     string
+  isConnected:  boolean
+  chainId?:     number
+  provider?:    unknown
+}
+
 export interface ResearchReport {
   token:       string
   purchasedAt: number
@@ -68,6 +75,7 @@ declare global {
     transactions: TxRecord[]
     portfolio:    PortfolioSnapshot | null
     delegation:   DelegationState
+    wallet:       WalletState
     agentRunning: boolean
     activeStrategy: 'conservative' | 'aggressive' | 'balanced'
     purchasedResearch: ResearchReport[]
@@ -86,6 +94,7 @@ if (!globalThis.__portfolioStore) {
     transactions: [],
     portfolio:    null,
     delegation:   {},
+    wallet:       { isConnected: false },
     agentRunning: false,
     activeStrategy: 'balanced', // Default to Nova - Balanced
     purchasedResearch: [],
