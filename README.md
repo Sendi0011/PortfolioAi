@@ -597,6 +597,129 @@ ngrok http 3000
 WEBHOOK_BASE_URL=https://abc123.ngrok.io
 ```
 
+## Hackathon Track Integration
+
+PortfolioAI demonstrates comprehensive integration across multiple hackathon tracks with real code implementations.
+
+### Smart Accounts Kit Usage
+
+Our project extensively uses MetaMask Smart Accounts Kit for EIP-7702 implementations:
+
+### Smart Accounts Kit Usage
+
+Our project extensively uses MetaMask Smart Accounts Kit for EIP-7702 implementations:
+
+#### Advanced Permissions
+- **Request Advanced Permissions**: [`lib/metamask.ts:45-80`](lib/metamask.ts#L45-L80) - `requestRebalancePermission()` function implementing ERC-7715
+- **Redeem Advanced Permissions**: [`app/api/agent/run/route.ts:25-45`](app/api/agent/run/route.ts#L25-L45) - Permission validation before agent execution
+
+#### Delegations
+- **Create Delegation**: [`lib/metamask.ts:82-115`](lib/metamask.ts#L82-L115) - `createRootDelegation()` function for initial delegation setup
+- **Redeem Delegation**: [`app/api/agent/execute/route.ts:65-85`](app/api/agent/execute/route.ts#L65-L85) - `buildRedeemCalldata()` usage for transaction execution
+
+#### Redelegation
+- **Creating Redelegation**: [`lib/metamask.ts:117-145`](lib/metamask.ts#L117-L145) - `redelegateToAgent()` for agent-to-agent redelegation chain
+- **Redelegation Usage**: [`app/api/agent/strategy/route.ts:45-70`](app/api/agent/strategy/route.ts#L45-L70) - Implementation in strategy agent pipeline
+
+### x402 Integration
+
+Complete x402 implementation for premium research paywall:
+
+#### Server Implementation
+- **x402 Server**: [`app/api/research/route.ts`](app/api/research/route.ts) - HTTP 402 challenge with EIP-712 signature verification
+- **Payment Processing**: [`lib/x402.ts:45-80`](lib/x402.ts#L45-L80) - `verifyX402Payment()` function for signature validation
+
+#### Client Usage
+- **x402-ERC-7710 Asset Transfer**: [`components/ResearchPaywall.tsx:35-65`](components/ResearchPaywall.tsx#L35-L65) - MetaMask EIP-712 signing integration
+- **Payment Flow**: [`lib/x402.ts:15-40`](lib/x402.ts#L15-L40) - `createPaymentChallenge()` for payment structure
+
+### 1Shot API Usage
+
+Gasless transaction execution via 1Shot Relayer:
+
+#### API Integration
+- **Transaction Submission**: [`lib/oneshot.ts:25-60`](lib/oneshot.ts#L25-L60) - `submitTransaction()` function for relayer integration
+- **Webhook Handling**: [`app/api/webhook/1shot/route.ts`](app/api/webhook/1shot/route.ts) - Real-time transaction status updates
+- **Health Monitoring**: [`lib/oneshot.ts:80-95`](lib/oneshot.ts#L80-L95) - `getRelayerHealth()` for service availability
+- **Mock Fallback**: [`lib/oneshot.ts:100-130`](lib/oneshot.ts#L100-L130) - Development mode with mock relayer
+
+### Venice AI Usage
+
+Comprehensive AI integration for market analysis and decision-making:
+
+### Venice AI Usage
+
+Comprehensive AI integration for market analysis and decision-making:
+
+#### Text Generation
+- **Market Analysis**: [`lib/venice.ts:35-65`](lib/venice.ts#L35-L65) - `veniceChat()` function with custom prompts
+- **Strategy Prompts**: [`lib/venice.ts:150-200`](lib/venice.ts#L150-L200) - Agent-specific reasoning prompts for market decisions
+- **Bull vs Bear Debates**: [`app/api/agent/debate/route.ts:30-80`](app/api/agent/debate/route.ts#L30-L80) - AI debate orchestration system
+
+#### Image Generation  
+- **Portfolio Charts**: [`lib/venice.ts:95-120`](lib/venice.ts#L95-L120) - `veniceGenerateChart()` for portfolio visualizations
+- **Chart Integration**: [`components/PortfolioPieChart.tsx:25-45`](components/PortfolioPieChart.tsx#L25-L45) - Dynamic chart rendering in UI
+
+#### Audio Generation
+- **Text-to-Speech**: [`lib/venice.ts:125-145`](lib/venice.ts#L125-L145) - `veniceGenerateAudio()` for agent narration  
+- **Audio Manager**: [`components/AudioManager.tsx:20-50`](components/AudioManager.tsx#L20-L50) - Real-time audio playback system
+
+#### Research Generation
+- **Premium Research**: [`app/api/research/route.ts:50-85`](app/api/research/route.ts#L50-L85) - Venice AI generating comprehensive market research
+- **Research Integration**: [`components/ResearchPaywall.tsx:35-65`](components/ResearchPaywall.tsx#L35-L65) - AI research in decision-making flow
+
+### Feedback
+
+We welcome feedback and contributions to improve PortfolioAI:
+
+#### Current Implementation Status
+- ✅ **Complete Multi-Agent Pipeline** - Oracle → Strategy → Executor coordination
+- ✅ **Real Market Data Integration** - CoinGecko API with on-chain balance queries  
+- ✅ **Production-Ready UI** - Professional interface with real-time monitoring
+- ✅ **Comprehensive Error Handling** - Graceful fallbacks and transparent data sources
+
+#### Areas for Enhancement
+- **Smart Contract Deployment** - Currently using mock implementations for demo stability
+- **Advanced Portfolio Strategies** - Additional rebalancing algorithms beyond simple threshold-based
+- **Multi-Chain Support** - Expansion beyond Base Sepolia to mainnet and other chains
+- **Enhanced Security** - Additional signature validation and permission granularity
+
+#### Open Issues & Feature Requests
+- **Enhanced Smart Contract Integration** - Deploy real ERC-7715/ERC-7710 contracts for mainnet usage
+- **Advanced Portfolio Strategies** - Implement momentum-based and mean reversion algorithms  
+- **Multi-Chain Support** - Expand beyond Base Sepolia to Ethereum mainnet and L2s
+- **Enterprise Security Features** - Multi-signature support and granular permission controls
+- **Mobile Interface** - React Native app for portfolio monitoring and agent management
+
+**Submit feedback via GitHub Issues**: [Create New Issue](https://github.com/sendi0011/portfolioai/issues/new)
+
+### Social Media
+
+Connect with the PortfolioAI development team and community:
+
+#### Platform Links  
+- **Project Twitter**: [@PortfolioAII](https://x.com/portfolioaii?s=21) - Official PortfolioAI project updates and technical showcases
+- **Developer Twitter**: [@SendiJohn01](https://x.com/sendijohn01?s=21) - Development progress, behind-the-scenes content, and hackathon journey  
+- **GitHub Repository**: [github.com/your-username/portfolioai](https://github.com/sendi0011/portfolioai) - Source code, issues, and contributions
+- **Live Demo**: [https://portfolio-ai-lac-pi.vercel.app](https://portfolio-ai-lac-pi.vercel.app) - Interactive application demo for hackathon judges
+- **Technical Documentation**: [docs.portfolioai.dev](https://docs.portfolioai.dev) - Comprehensive integration guides and API reference
+
+#### Community Engagement
+- **Hackathon Updates** - Regular progress posts using #MetaMaskHackathon #DeFiAgents #AutonomousFinance
+- **Technical Deep Dives** - Architecture explanations, EIP-7702 implementation details, and agent coordination patterns
+- **Demo Content** - Video walkthroughs of multi-agent pipeline, Venice AI integration, and x402 research system
+- **Developer Resources** - Code examples, integration guides, and best practices for autonomous DeFi agents
+
+#### Content Strategy
+- **Educational Content** - Explaining ERC-7715 permissions, ERC-7710 delegations, and agent coordination
+- **Technical Showcases** - Real-time demos of agent decision-making, Venice AI reasoning, and gasless execution
+- **Community Building** - Developer discussions, feedback incorporation, and open-source collaboration
+- **Innovation Highlights** - Autonomous research purchasing, AI debates, and production-ready implementations
+
+**Follow development progress**: #PortfolioAI #MetaMaskSmartAccounts #VeniceAI #1ShotRelayer
+
+**Connect with the team**: [@PortfolioAII](https://x.com/portfolioaii?s=21) • [@SendiJohn01](https://x.com/sendijohn01?s=21)
+
 ## Configuration
 
 ### Environment Variables
